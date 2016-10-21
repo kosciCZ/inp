@@ -15,8 +15,8 @@ end ledc8x8;
 architecture main of ledc8x8 is
 
     -- Sem doplnte definice vnitrnich signalu.
-    signal row_sig: std_logic_vector(7 downto 0);
-    signal led_sig: std_logic_vector(7 downto 0);
+    signal row_sig: std_logic_vector(7 downto 0) := "10000000";
+    signal led_sig: std_logic_vector(7 downto 0) := "00000000";
     signal clk_enable: std_logic;
     signal first: std_logic := '0';
     signal J_in: std_logic_vector(7 downto 0);
@@ -33,7 +33,7 @@ begin
 
     -- Nezapomente take doplnit mapovani signalu rozhrani na piny FPGA
     -- v souboru ledc8x8.ucf.
-    -- rotaÄnÃ­ registr
+    -- rotaèní registr
     registr: process(RESET, SMCLK)
 	begin
 	   if (RESET='1') then
@@ -91,5 +91,12 @@ begin
 	      when "00000001" => K_out <= "11111111";
 	      when others => K_out <= "11111111";
 	   end case;
+	end process;
+	write: process(SMCLK, Y)
+	begin
+	   if (SMCLK'event) and (SMCLK='1') then
+	      			ROW <= row_sig;
+						LED <= Y;
+	   end if;
 	end process;
 end main;
