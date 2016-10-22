@@ -17,8 +17,10 @@ architecture main of ledc8x8 is
     -- Sem doplnte definice vnitrnich signalu.
     signal row_sig: std_logic_vector(7 downto 0) := "10000000";
     signal led_sig: std_logic_vector(7 downto 0) := "00000000";
-    signal clk_enable: std_logic;
+    signal clk: std_logic := '0';
+    signal clk_cnt: std_logic_vector(7 downto 0) := "00000000";
     signal first: std_logic := '0';
+    signal row_cnt: std_logic_vector(3 downto 0) := "0000";
     signal J_in: std_logic_vector(7 downto 0);
     signal K_in: std_logic_vector(7 downto 0);    
     signal J_out: std_logic_vector(7 downto 0);
@@ -33,13 +35,28 @@ begin
 
     -- Nezapomente take doplnit mapovani signalu rozhrani na piny FPGA
     -- v souboru ledc8x8.ucf.
-    -- rotaèní registr
-    registr: process(RESET, SMCLK)
+    -- rotacni registr
+    clk_gen: process(RESET,SMCLK)
+    begin
+    	if (RESET = '1') then	
+    		clk_cnt <= "00000000";
+    	elsif (SMCLK'event) and (SMCLK='1') then
+    		clk_cnt <= clk_cnt + 1;
+    		if (clk_cnt = "11111111") then
+    			clk <= '1';
+    			clk_cnt <= "00000000";
+    		else
+    			clk <= '0';
+    		end if ;
+    	end if ;
+    end process;
+
+    registr: process(RESET, SMCLK, clk)
 	begin
 	   if (RESET='1') then
 	   	  --reset na prvni radek
 	      row_sig <= ('1', others => '0'); 
-	   elsif (SMCLK'event) and (SMCLK='1') then
+	   elsif (SMCLK'event) and (SMCLK='1') and (clk = '1')then
 	      	-- provedu rotaci (konkatenace posledniho bitu a a bitu 7-1)
 	        row_sig <= row_sig(0) & row_sig(7 downto 1);
 	   end if;
@@ -92,11 +109,16 @@ begin
 	      when others => K_out <= "11111111";
 	   end case;
 	end process;
-	write: process(SMCLK, Y)
+	write: process(SMCLK, Y, clk)
 	begin
-	   if (SMCLK'event) and (SMCLK='1') then
-	      			ROW <= row_sig;
-						LED <= Y;
+	   if (SMCLK'event) and (SMCLK = '1') and (clk = '1')then
+			ROW <= row_sig;
+			LED <= Y;
+			row_cnt <= row_cnt + 1;
+			if (row_cnt = 7) then
+				row_cnt <= "0000";
+				first <= first nand first;
+			end if ;
 	   end if;
 	end process;
 end main;
